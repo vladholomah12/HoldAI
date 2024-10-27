@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  previewFeatures = ["referentialIntegrity"]
   binaryTargets = ["native", "rhel-openssl-1.0.x"]
 }
 
@@ -17,7 +16,7 @@ model User {
   firstName     String?
   lastName      String?
   balance       Float     @default(0)
-  walletAddress String?
+  walletAddress String?   @unique
   referralCode  String    @unique @default(cuid())
   referredBy    String?
   referredUsers User[]    @relation("ReferralRelation")
