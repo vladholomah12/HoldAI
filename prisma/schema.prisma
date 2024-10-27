@@ -1,0 +1,33 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  telegramId    BigInt    @unique
+  username      String?
+  firstName     String?
+  lastName      String?
+  balance       Float     @default(0)
+  walletAddress String?
+  referralCode  String    @unique @default(cuid())
+  referredBy    String?
+  referredUsers User[]    @relation("ReferralRelation")
+  referrer      User?     @relation("ReferralRelation", fields: [referredBy], references: [id])
+  dailyLogins   Login[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Login {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  loginDate DateTime @default(now())
+}
