@@ -16,29 +16,28 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ telegramId, onConn
       // @ts-ignore
       const telegram = window.Telegram.WebApp;
 
-      // Показуємо діалог вибору гаманця
       const result = await telegram.showPopup({
-        title: 'Connect Wallet',
+        title: 'Connect TON Wallet',
         message: 'Choose your wallet to connect',
         buttons: [
-          { id: 'ton', type: 'default', text: 'TON Wallet' },
+          { id: 'tonkeeper', type: 'default', text: 'Tonkeeper' },
+          { id: 'mytonwallet', type: 'default', text: 'MyTonWallet' },
+          { id: 'tonhub', type: 'default', text: 'Tonhub' },
+          { id: 'dewallet', type: 'default', text: 'DeWallet' },
           { id: 'cancel', type: 'cancel' }
         ]
       });
 
-      if (result.buttonId === 'ton') {
-        // Імітуємо підключення TON гаманця
+      if (result.buttonId && result.buttonId !== 'cancel') {
         // В реальному додатку тут буде справжня логіка підключення
         const mockAddress = `0x${Math.random().toString(16).slice(2, 42)}`;
 
-        // Зберігаємо інформацію про гаманець
         const response = await fetch('/api/wallet', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             telegramId,
-            walletAddress: mockAddress,
-            walletType: 'TON'
+            walletAddress: mockAddress
           })
         });
 
@@ -46,7 +45,7 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ telegramId, onConn
           const data = await response.json();
           onConnect(data.walletAddress);
 
-          telegram.showPopup({
+          await telegram.showPopup({
             message: 'Wallet connected successfully!',
             buttons: [{ type: 'ok' }]
           });
@@ -55,7 +54,8 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ telegramId, onConn
     } catch (error) {
       console.error('Error connecting wallet:', error);
       // @ts-ignore
-      window.Telegram.WebApp.showPopup({
+      const telegram = window.Telegram.WebApp;
+      await telegram.showPopup({
         message: 'Failed to connect wallet. Please try again.',
         buttons: [{ type: 'ok' }]
       });
@@ -66,12 +66,12 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ telegramId, onConn
 
   return (
     <button
-      onClick={connectWallet}
+      onClick={() => void connectWallet()}
       disabled={isConnecting}
       className="w-full mt-4 p-2 border rounded-lg text-center flex items-center justify-center gap-2 hover:bg-gray-50"
     >
       <Wallet className="w-5 h-5" />
-      <span>{isConnecting ? 'Connecting...' : 'Connect Wallet'}</span>
+      <span>{isConnecting ? 'Connecting...' : 'Connect TON Wallet'}</span>
     </button>
   );
 };
