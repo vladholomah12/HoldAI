@@ -32,6 +32,12 @@ interface TelegramWebApp {
     onClick: (callback: () => void) => void;
   };
   openLink: (url: string) => void;
+  openTelegramLink?: (url: string) => void;
+  TonConnect?: {
+    connect: () => Promise<{
+      address: string;
+    } | null>;
+  };
 }
 
 declare global {
