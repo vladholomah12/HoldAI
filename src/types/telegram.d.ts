@@ -31,6 +31,7 @@ interface TelegramWebApp {
     disable: () => void;
     onClick: (callback: () => void) => void;
   };
+  openLink: (url: string) => void;
 }
 
 declare global {
