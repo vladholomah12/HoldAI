@@ -14,17 +14,67 @@ interface UserData {
   walletConnectedAt: string | null;
 }
 
+interface WalletResponse {
+  telegramId: number;
+  walletAddress: string;
+}
+
 const TelegramMiniApp = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const daysOfWeek = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   const currentDay = new Date().getDay();
 
+  const handleWalletRequest = useCallback(async (method: string, data: WalletResponse): Promise<void> => {
+    try {
+      const response = await fetch('/api/wallet', {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (response.ok) {
+        const updatedUser = await response.json();
+        setUserData(updatedUser);
+      }
+    } catch (error) {
+      console.error(`Error ${method === 'DELETE' ? 'disconnecting' : 'connecting'} wallet:`, error);
+    }
+  }, []);
+
+  const handleWalletConnect = useCallback(async (address: string): Promise<void> => {
+    if (!userData?.telegramId) return;
+
+    await handleWalletRequest('POST', {
+      telegramId: Number(userData.telegramId),
+      walletAddress: address,
+    });
+  }, [userData, handleWalletRequest]);
+
+  const handleDisconnectWallet = useCallback(async (): Promise<void> => {
+    if (!userData?.telegramId) return;
+
+    await handleWalletRequest('DELETE', {
+      telegramId: Number(userData.telegramId),
+      walletAddress: '',
+    });
+
+    // @ts-ignore
+    const telegram = window.Telegram.WebApp;
+    await telegram.showPopup({
+      message: 'Wallet disconnected successfully',
+      buttons: [{ type: 'ok' }]
+    });
+  }, [userData, handleWalletRequest]);
+
   const initTelegram = useCallback(async () => {
     try {
       // @ts-ignore
       const telegram = window.Telegram.WebApp;
-      await telegram.ready();
+      // Прибираємо await оскільки ready() не повертає Promise
+      telegram.ready();
 
       const response = await fetch('/api/user', {
         method: 'POST',
@@ -50,59 +100,6 @@ const TelegramMiniApp = () => {
   useEffect(() => {
     void initTelegram();
   }, [initTelegram]);
-
-  const handleWalletConnect = useCallback(async (address: string) => {
-    if (!userData?.telegramId) return;
-
-    try {
-      const response = await fetch('/api/wallet', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          telegramId: Number(userData.telegramId),
-          walletAddress: address,
-        }),
-      });
-
-      if (response.ok) {
-        const updatedUser = await response.json();
-        setUserData(updatedUser);
-      }
-    } catch (error) {
-      console.error('Error connecting wallet:', error);
-    }
-  }, [userData]);
-
-  const handleDisconnectWallet = useCallback(async () => {
-    if (!userData?.telegramId) return;
-
-    try {
-      const response = await fetch('/api/wallet', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          telegramId: Number(userData.telegramId),
-        }),
-      });
-
-      if (response.ok) {
-        const updatedUser = await response.json();
-        setUserData(updatedUser);
-
-        // @ts-ignore
-        await window.Telegram.WebApp.showPopup({
-          message: 'Wallet disconnected successfully',
-          buttons: [{ type: 'ok' }]
-        });
-      }
-    } catch (error) {
-      console.error('Error disconnecting wallet:', error);
-    }
-  }, [userData]);
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
@@ -134,7 +131,7 @@ const TelegramMiniApp = () => {
             </div>
           </div>
         </div>
-        
+
         {userData?.walletAddress ? (
           <div className="space-y-2">
             <div className="text-sm text-gray-500 truncate">
@@ -162,7 +159,7 @@ const TelegramMiniApp = () => {
             <Gift className="w-5 h-5" />
             <span>Task</span>
           </div>
-          <span className="text-blue-500">перейти до завдань →</span>
+          <span className="text-blue-500">View tasks →</span>
         </div>
       </div>
 
@@ -194,7 +191,8 @@ const TelegramMiniApp = () => {
       <button
         onClick={async () => {
           // @ts-ignore
-          await window.Telegram.WebApp.showPopup({
+          const telegram = window.Telegram.WebApp;
+          await telegram.showPopup({
             title: 'Invite Friends',
             message: 'Share your referral link to invite friends',
             buttons: [
