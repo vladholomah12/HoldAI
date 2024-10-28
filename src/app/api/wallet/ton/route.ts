@@ -1,35 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
-interface WalletResponse {
-  ok: boolean;
-  address?: string;
-  error?: string;
-}
-
-async function getWalletInfo(telegramId: number): Promise<WalletResponse> {
-  try {
-    // В реальному додатку тут був би запит до Telegram Wallet API
-    // Зараз для тесту генеруємо тестову адресу
-    const mockAddress = `EQ${Math.random().toString(36).substring(2, 15)}`;
-
-    return {
-      ok: true,
-      address: mockAddress
-    };
-  } catch (err) {
-    console.error('Error getting wallet info:', err);
-    return {
-      ok: false,
-      error: 'Failed to get wallet information'
-    };
-  }
-}
+const generateMockAddress = () => `EQ${Math.random().toString(36).slice(2, 15).toUpperCase()}`;
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json().catch(() => ({}));
-    const { telegramId } = body;
+    const { telegramId, action } = await req.json();
 
     if (!telegramId) {
       return NextResponse.json(
@@ -38,38 +14,47 @@ export async function POST(req: Request) {
       );
     }
 
-    const walletInfo = await getWalletInfo(telegramId);
+    const existingUser = await prisma.user.findUnique({
+      where: {
+        telegramId: BigInt(telegramId)
+      },
+      select: {
+        walletAddress: true
+      }
+    });
 
-    if (!walletInfo.ok || !walletInfo.address) {
-      return NextResponse.json(
-        { error: walletInfo.error || 'Failed to get wallet info' },
-        { status: 400 }
-      );
+    if (!action) {
+      return NextResponse.json({
+        address: existingUser?.walletAddress || null
+      });
     }
 
-    // Оновлюємо інформацію в базі даних
-    try {
-      await prisma.user.update({
+    if (action === 'connect') {
+      const mockAddress = generateMockAddress();
+
+      const updatedUser = await prisma.user.update({
         where: {
           telegramId: BigInt(telegramId)
         },
         data: {
-          walletAddress: walletInfo.address
+          walletAddress: mockAddress
+        },
+        select: {
+          walletAddress: true
         }
       });
-    } catch (dbError) {
-      console.error('Database error:', dbError);
-      return NextResponse.json(
-        { error: 'Failed to update user information' },
-        { status: 500 }
-      );
+
+      return NextResponse.json({
+        address: updatedUser.walletAddress
+      });
     }
 
-    return NextResponse.json({
-      address: walletInfo.address
-    });
+    return NextResponse.json(
+      { error: 'Invalid action' },
+      { status: 400 }
+    );
   } catch (err) {
-    console.error('General error:', err);
+    console.error('Error processing wallet request:', err);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

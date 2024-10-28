@@ -9,67 +9,129 @@ interface WalletConnectProps {
 export const WalletConnect: React.FC<WalletConnectProps> = ({ telegramId, onConnect }) => {
   const [isConnecting, setIsConnecting] = useState(false);
 
-  const showError = useCallback(async (message: string) => {
+  const handleError = useCallback(async (message: string) => {
     // @ts-ignore
     const telegram = window.Telegram.WebApp;
-    return telegram.showPopup({
+    await telegram.showPopup({
       message,
       buttons: [{ type: 'ok' }]
     });
   }, []);
 
-  const connectWallet = useCallback(async () => {
-    if (isConnecting) return;
+  const checkWallet = useCallback(async (id: number) => {
+    try {
+      const response = await fetch('/api/wallet/ton', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegramId: id })
+      });
 
-    setIsConnecting(true);
+      if (!response.ok) return null;
+      const data = await response.json();
+      return data.address;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const handleWalletConnection = useCallback(async () => {
     // @ts-ignore
     const telegram = window.Telegram.WebApp;
 
+    // Показуємо опції підключення
+    const result = await telegram.showPopup({
+      title: 'Connect TON Wallet',
+      message: 'Choose wallet connection method',
+      buttons: [
+        { id: 'telegram', type: 'default', text: 'Telegram Wallet' },
+        { id: 'tonkeeper', type: 'default', text: 'Tonkeeper' },
+        { id: 'cancel', type: 'cancel' }
+      ]
+    });
+
+    if (result.buttonId === 'cancel') {
+      return false;
+    }
+
+    // Відкриваємо відповідний гаманець
+    if (result.buttonId === 'telegram') {
+      telegram.openLink('ton://');
+    } else if (result.buttonId === 'tonkeeper') {
+      telegram.openLink('https://app.tonkeeper.com/ton-connect');
+    }
+
+    // Чекаємо підтвердження
+    const confirmResult = await telegram.showPopup({
+      title: 'Wallet Connection',
+      message: 'Did you connect your wallet?',
+      buttons: [
+        { id: 'yes', type: 'default', text: 'Yes' },
+        { id: 'no', type: 'default', text: 'No, try again' }
+      ]
+    });
+
+    return confirmResult.buttonId === 'yes';
+  }, []);
+
+  const saveWalletConnection = useCallback(async (id: number) => {
+    const response = await fetch('/api/wallet/ton', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        telegramId: id,
+        action: 'connect'
+      })
+    });
+
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.address || null;
+  }, []);
+
+  const connectWallet = useCallback(async () => {
+    if (isConnecting) return;
+    setIsConnecting(true);
+
     try {
-      // Відкриваємо Telegram Wallet
-      telegram.openLink('tg://resolve?domain=wallet');
-
-      // Запитуємо підтвердження у користувача
-      const result = await telegram.showPopup({
-        title: 'Connect Wallet',
-        message: 'Did you connect your wallet in Telegram?',
-        buttons: [
-          { id: 'yes', type: 'default', text: 'Yes' },
-          { id: 'no', type: 'default', text: 'No' }
-        ]
-      });
-
-      if (result?.buttonId === 'yes') {
-        const response = await fetch('/api/wallet/ton', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ telegramId })
-        }).catch(() => null);
-
-        if (!response?.ok) {
-          await showError('Failed to connect wallet. Please try again.');
-          return;
-        }
-
-        const data = await response.json().catch(() => null);
-        if (!data?.address) {
-          await showError('Could not get wallet address. Please try again.');
-          return;
-        }
-
-        onConnect(data.address);
-        await telegram.showPopup({
-          message: 'Wallet connected successfully!',
+      // Перевіряємо існуючий гаманець
+      const existingAddress = await checkWallet(telegramId);
+      if (existingAddress) {
+        onConnect(existingAddress);
+        // @ts-ignore
+        await window.Telegram.WebApp.showPopup({
+          message: 'Wallet already connected!',
           buttons: [{ type: 'ok' }]
         });
+        return;
       }
-    } catch (err) {
-      console.error('Wallet connection error:', err);
-      await showError('Something went wrong. Please try again.');
+
+      // Процес підключення
+      const confirmed = await handleWalletConnection();
+      if (!confirmed) {
+        await handleError('Wallet connection cancelled. Please try again.');
+        return;
+      }
+
+      // Зберігаємо підключення
+      const newAddress = await saveWalletConnection(telegramId);
+      if (!newAddress) {
+        await handleError('Failed to save wallet connection. Please try again.');
+        return;
+      }
+
+      onConnect(newAddress);
+      // @ts-ignore
+      await window.Telegram.WebApp.showPopup({
+        message: 'Wallet connected successfully!',
+        buttons: [{ type: 'ok' }]
+      });
+    } catch (error) {
+      console.error('Wallet connection error:', error);
+      await handleError('Something went wrong. Please try again.');
     } finally {
       setIsConnecting(false);
     }
-  }, [telegramId, onConnect, isConnecting, showError]);
+  }, [telegramId, onConnect, isConnecting, checkWallet, handleWalletConnection, saveWalletConnection, handleError]);
 
   return (
     <button
