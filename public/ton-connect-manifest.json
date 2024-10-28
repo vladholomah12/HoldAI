@@ -1,0 +1,12 @@
+{
+  "url": "https://hold-ai.vercel.app",
+  "name": "HoldAI",
+  "iconUrl": "https://hold-ai.vercel.app/icon.png",
+  "termsOfUseUrl": "https://hold-ai.vercel.app/terms",
+  "privacyPolicyUrl": "https://hold-ai.vercel.app/privacy",
+  "manifest_version": 1,
+  "permissions": [
+    "basic",
+    "accountInteraction"
+  ]
+}

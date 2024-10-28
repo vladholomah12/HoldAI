@@ -28,11 +28,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <title>HoldAI - TON Mini App</title>
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased dark:bg-gray-900`}>
         <noscript>You need to enable JavaScript to run this app.</noscript>
-        <Script 
+        <Script
           id="telegram-webapp"
-          src="/scripts/telegram-web-app.js" 
+          src="/scripts/telegram-web-app.js"
           strategy="afterInteractive"
         />
         {children}
