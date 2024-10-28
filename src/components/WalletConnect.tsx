@@ -9,77 +9,67 @@ interface WalletConnectProps {
 export const WalletConnect: React.FC<WalletConnectProps> = ({ telegramId, onConnect }) => {
   const [isConnecting, setIsConnecting] = useState(false);
 
+  const showError = useCallback(async (message: string) => {
+    // @ts-ignore
+    const telegram = window.Telegram.WebApp;
+    return telegram.showPopup({
+      message,
+      buttons: [{ type: 'ok' }]
+    });
+  }, []);
+
   const connectWallet = useCallback(async () => {
+    if (isConnecting) return;
+
+    setIsConnecting(true);
+    // @ts-ignore
+    const telegram = window.Telegram.WebApp;
+
     try {
-      setIsConnecting(true);
+      // Відкриваємо Telegram Wallet
+      telegram.openLink('tg://resolve?domain=wallet');
 
-      // @ts-ignore
-      const telegram = window.Telegram.WebApp;
-
+      // Запитуємо підтвердження у користувача
       const result = await telegram.showPopup({
-        title: 'Connect TON Wallet',
-        message: 'Please select a wallet type',
+        title: 'Connect Wallet',
+        message: 'Did you connect your wallet in Telegram?',
         buttons: [
-          { id: 'telegram', type: 'default', text: 'Telegram Wallet' },
-          { id: 'external', type: 'default', text: 'External Wallet' },
-          { id: 'cancel', type: 'cancel' }
+          { id: 'yes', type: 'default', text: 'Yes' },
+          { id: 'no', type: 'default', text: 'No' }
         ]
       });
 
-      if (result.buttonId === 'telegram') {
-        // Для Telegram Wallet використовуємо прямий протокол
-        const walletUrl = 'tg://resolve?domain=wallet';
-        telegram.openLink(walletUrl);
+      if (result?.buttonId === 'yes') {
+        const response = await fetch('/api/wallet/ton', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegramId })
+        }).catch(() => null);
 
-        // Очікуємо на підтвердження від користувача
-        const confirmResult = await telegram.showPopup({
-          title: 'Wallet Connection',
-          message: 'Did you connect your wallet in Telegram?',
-          buttons: [
-            { id: 'yes', type: 'default', text: 'Yes' },
-            { id: 'no', type: 'default', text: 'No' }
-          ]
-        });
-
-        if (confirmResult.buttonId === 'yes') {
-          // В реальному додатку тут має бути запит до Telegram Wallet API
-          const mockAddress = `EQ${Math.random().toString(36).substring(2, 15)}`;
-
-          const response = await fetch('/api/wallet', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              telegramId,
-              walletAddress: mockAddress
-            })
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            onConnect(data.walletAddress);
-
-            await telegram.showPopup({
-              message: 'Wallet connected successfully!',
-              buttons: [{ type: 'ok' }]
-            });
-          }
+        if (!response?.ok) {
+          await showError('Failed to connect wallet. Please try again.');
+          return;
         }
-      } else if (result.buttonId === 'external') {
-        // Для зовнішніх гаманців показуємо QR-код або deeplink
-        telegram.openLink('https://ton.org/wallets');
+
+        const data = await response.json().catch(() => null);
+        if (!data?.address) {
+          await showError('Could not get wallet address. Please try again.');
+          return;
+        }
+
+        onConnect(data.address);
+        await telegram.showPopup({
+          message: 'Wallet connected successfully!',
+          buttons: [{ type: 'ok' }]
+        });
       }
-    } catch (error) {
-      console.error('Error connecting wallet:', error);
-      // @ts-ignore
-      const telegram = window.Telegram.WebApp;
-      await telegram.showPopup({
-        message: 'Failed to connect wallet. Please try again.',
-        buttons: [{ type: 'ok' }]
-      });
+    } catch (err) {
+      console.error('Wallet connection error:', err);
+      await showError('Something went wrong. Please try again.');
     } finally {
       setIsConnecting(false);
     }
-  }, [telegramId, onConnect]);
+  }, [telegramId, onConnect, isConnecting, showError]);
 
   return (
     <button
