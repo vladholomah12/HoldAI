@@ -30,15 +30,6 @@ const nextConfig = {
         ]
       }
     ]
-  },
-  // Додаємо конфігурацію для правильної обробки статичних файлів
-  webpack(config) {
-    config.module.rules.push({
-      test: /\.json$/,
-      type: 'javascript/auto',
-      use: ['json-loader']
-    });
-    return config;
   }
 }
 
