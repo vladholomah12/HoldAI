@@ -5,71 +5,82 @@ import type { WalletConnectProps } from '@/types/wallet';
 export const WalletConnect: React.FC<WalletConnectProps> = ({ telegramId, onConnect }) => {
   const [isConnecting, setIsConnecting] = useState(false);
 
-  const showPopup = useCallback(async (params: {
-    title?: string;
-    message: string;
-    buttons: Array<{
-      type: 'default' | 'ok' | 'cancel';
-      text: string;
-      id?: string;
-    }>;
-  }) => {
-    // @ts-ignore
-    return window.Telegram.WebApp.showPopup(params);
-  }, []);
-
   const handleTonConnect = useCallback(async () => {
     if (!telegramId) return;
 
-    // Show terms dialog
-    const termsResult = await showPopup({
-      title: 'Terms of Use',
-      message: 'This will open a mini-application managed by a third-party developer not affiliated with Telegram. To continue, you must agree to the Terms of Use.',
-      buttons: [
-        { type: 'default', text: 'Continue', id: 'continue' },
-        { type: 'cancel', text: 'Cancel', id: 'cancel' }
-      ]
-    });
+    try {
+      // @ts-ignore
+      const telegram = window.Telegram.WebApp;
 
-    if (termsResult.buttonId === 'continue') {
-      // Show wallet connection dialog
-      const walletResult = await showPopup({
-        title: 'Connect Wallet',
-        message: 'Open Wallet in Telegram or select your wallet to connect',
+      // Перший попап - умови використання
+      const termsResult = await telegram.showPopup({
+        title: 'Terms of Use',
+        message: 'This will open a mini-application managed by a third-party developer not affiliated with Telegram. To continue, you must agree to the Terms of Use.',
         buttons: [
-          { type: 'default', text: 'Open Wallet in Telegram', id: 'wallet' },
+          { type: 'default', text: 'Continue', id: 'continue' },
           { type: 'cancel', text: 'Cancel', id: 'cancel' }
         ]
       });
 
-      if (walletResult.buttonId === 'wallet') {
-        // @ts-ignore
-        window.Telegram.WebApp.openLink('ton://');
-
-        // Show permission dialog
-        const permissionResult = await showPopup({
-          title: 'Connect to TON Space',
-          message: 'Application requests permission to access your TON Space address, balance and activity information.',
+      if (termsResult.buttonId === 'continue') {
+        // Другий попап - вибір способу підключення
+        const walletResult = await telegram.showPopup({
+          title: 'Connect Wallet',
+          message: 'Open Wallet in Telegram or select your wallet to connect',
           buttons: [
-            { type: 'default', text: 'Connect Wallet', id: 'connect' },
+            { type: 'default', text: 'Open Wallet in Telegram', id: 'wallet' },
             { type: 'cancel', text: 'Cancel', id: 'cancel' }
           ]
         });
 
-        if (permissionResult.buttonId === 'connect') {
-          const mockAddress = `UQCT${Math.random().toString(36).substring(2, 8)}...FaJY`;
-          await onConnect(mockAddress);
+        if (walletResult.buttonId === 'wallet') {
+          // Відкриваємо TON протокол
+          telegram.openLink('ton://');
 
-          await showPopup({
-            message: `Successfully connected to TON Space ${mockAddress}`,
+          // Третій попап - підтвердження доступу
+          const permissionResult = await telegram.showPopup({
+            title: 'Connect to TON Space',
+            message: 'Application requests permission to access your TON Space address, balance and activity information.',
             buttons: [
-              { type: 'ok', text: 'Return to App', id: 'ok' }
+              { type: 'default', text: 'Connect Wallet', id: 'connect' },
+              { type: 'cancel', text: 'Cancel', id: 'cancel' }
             ]
           });
+
+          if (permissionResult.buttonId === 'connect') {
+            // Запит до API для отримання адреси гаманця
+            const response = await fetch('/api/wallet/ton', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                telegramId,
+                action: 'connect'
+              })
+            });
+
+            const data = await response.json();
+            if (data.address) {
+              await onConnect(data.address);
+
+              // Показуємо успішне підключення
+              await telegram.showPopup({
+                message: `Successfully connected to TON Space ${data.address}`,
+                buttons: [
+                  { type: 'ok', text: 'Return to App' }
+                ]
+              });
+            }
+          }
         }
       }
+    } catch (error) {
+      console.error('Failed to connect wallet:', error);
+      // @ts-ignore
+      window.Telegram.WebApp.showAlert('Failed to connect wallet. Please try again.');
     }
-  }, [telegramId, showPopup, onConnect]);
+  }, [telegramId, onConnect]);
 
   const connectWallet = useCallback(async () => {
     if (isConnecting) return;
@@ -79,14 +90,12 @@ export const WalletConnect: React.FC<WalletConnectProps> = ({ telegramId, onConn
       await handleTonConnect();
     } catch (error) {
       console.error('Failed to connect wallet:', error);
-      await showPopup({
-        message: 'Failed to connect wallet. Please try again.',
-        buttons: [{ type: 'ok', text: 'OK', id: 'ok' }]
-      });
+      // @ts-ignore
+      window.Telegram.WebApp.showAlert('Failed to connect wallet. Please try again.');
     } finally {
       setIsConnecting(false);
     }
-  }, [isConnecting, handleTonConnect, showPopup]);
+  }, [isConnecting, handleTonConnect]);
 
   return (
     <button
