@@ -3,13 +3,11 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   images: {
-    domains: ['t.me'],
+    domains: ['t.me', 'ton.org', 'tonkeeper.com'],
   },
-  // Додаємо експериментальні функції якщо потрібно
   experimental: {
     serverActions: true,
   },
-  // Додаємо налаштування заголовків для ton-connect-manifest.json
   async headers() {
     return [
       {
