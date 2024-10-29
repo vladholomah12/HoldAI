@@ -4,11 +4,5 @@
   "iconUrl": "https://hold-ai.vercel.app/icon.png",
   "termsOfUseUrl": "https://hold-ai.vercel.app/terms",
   "privacyPolicyUrl": "https://hold-ai.vercel.app/privacy",
-  "manifestVersion": 1,
-  "items": [
-    {
-      "name": "ton-connect",
-      "url": "https://hold-ai.vercel.app/ton-connect-manifest.json"
-    }
-  ]
+  "manifestVersion": 1
 }

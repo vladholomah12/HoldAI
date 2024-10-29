@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import Script from "next/script";
 import "./globals.css";
+import { TonConnectProvider } from "@/providers/TonConnectProvider";
+import type { ReactNode } from 'react';
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -23,22 +25,24 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: ReactNode;
+}) {
   return (
-    <html lang="en">
+    <html lang="uk">
       <head>
         <title>HoldAI - TON Mini App</title>
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased dark:bg-gray-900`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <noscript>You need to enable JavaScript to run this app.</noscript>
         <Script
           id="telegram-webapp"
           src="/scripts/telegram-web-app.js"
           strategy="afterInteractive"
         />
-        {children}
+        <TonConnectProvider>
+          {children}
+        </TonConnectProvider>
       </body>
     </html>
   );

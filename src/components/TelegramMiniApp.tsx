@@ -75,43 +75,74 @@ const TelegramMiniApp = () => {
    }
  }, [userData, handleWalletRequest]);
 
- const initTelegram = useCallback(async () => {
-   try {
-     // @ts-ignore
-     const telegram = window.Telegram.WebApp;
-     telegram.ready();
+const initTelegram = useCallback(async () => {
+  let error = null;
 
-     if (!telegram.initDataUnsafe.user) {
-       return;
-     }
+  try {
+    // @ts-ignore
+    const telegram = window.Telegram.WebApp;
+    telegram.ready();
 
-     const response = await fetch('/api/user', {
-       method: 'POST',
-       headers: {
-         'Content-Type': 'application/json',
-       },
-       body: JSON.stringify({
-         telegramUser: telegram.initDataUnsafe.user,
-       }),
-     });
+    if (!telegram.initDataUnsafe.user) {
+      setLoading(false);
+      return;
+    }
 
-     if (!response.ok) {
-       const errorData = await response.json();
-       throw new Error(errorData.error || 'Failed to initialize user');
-     }
+    const response = await fetch('/api/user', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        telegramUser: telegram.initDataUnsafe.user,
+      }),
+    });
 
-     const data = await response.json();
-     setUserData(data);
-   } catch (error) {
-     console.error('Error initializing Telegram Web App:', error);
-   } finally {
-     setLoading(false);
-   }
- }, []);
+    if (!response.ok) {
+      const errorData = await response.json();
+      error = new Error(errorData.error || 'Failed to initialize user');
+      return;
+    }
 
- useEffect(() => {
-   initTelegram();
- }, [initTelegram]);
+    const data = await response.json();
+    setUserData(data);
+  } catch (e) {
+    error = e;
+    console.error('Error initializing Telegram Web App:', e);
+  } finally {
+    setLoading(false);
+    if (error) {
+      // @ts-ignore
+      window.Telegram.WebApp.showAlert('Помилка ініціалізації. Спробуйте перезавантажити застосунок.');
+    }
+  }
+}, []);
+useEffect(() => {
+  let mounted = true;
+
+  const init = async () => {
+    try {
+      await initTelegram();
+    } catch (error) {
+      console.error('Failed to initialize:', error);
+    }
+  };
+
+  // Викликаємо init та обробляємо Promise
+  (async () => {
+    try {
+      if (mounted) {
+        await init();
+      }
+    } catch (error) {
+      console.error('Init error:', error);
+    }
+  })();
+
+  return () => {
+    mounted = false;
+  };
+}, [initTelegram]);
 
  if (loading) {
    return <div className="flex items-center justify-center min-h-screen">Завантаження...</div>;
