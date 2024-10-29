@@ -13,7 +13,11 @@ export async function POST(req: Request) {
   try {
     const { telegramUser } = await req.json();
 
+    // Додаємо логування
+    console.log('Received telegram user data:', telegramUser);
+
     if (!telegramUser || !telegramUser.id) {
+      console.error('Invalid telegram user data:', telegramUser);
       return NextResponse.json(
         { error: 'Invalid Telegram user data' },
         { status: 400 }
@@ -26,6 +30,8 @@ export async function POST(req: Request) {
       firstName: telegramUser.first_name || null,
       lastName: telegramUser.last_name || null,
     };
+
+    console.log('Prepared user data:', userData);
 
     const user = await prisma.user.upsert({
       where: {
@@ -46,13 +52,18 @@ export async function POST(req: Request) {
       },
     }) as unknown as UserWithBigInt;
 
+    console.log('User upserted:', user);
+
     await prisma.login.create({
       data: {
         userId: user.id,
       },
     });
 
-    return NextResponse.json(serializeUser(user));
+    const serializedUser = serializeUser(user);
+    console.log('Sending response:', serializedUser);
+
+    return NextResponse.json(serializedUser);
   } catch (error) {
     console.error('Error processing user:', error);
     return NextResponse.json(
