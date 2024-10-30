@@ -1,7 +1,6 @@
 import React from 'react';
-import { TonConnectUIProvider } from '@tonconnect/ui-react';
+import { TonConnectUI } from '@tonconnect/ui';
 
-// Отримуємо URL з змінних середовища Next.js
 const manifestUrl = process.env.NEXT_PUBLIC_APP_URL
   ? `${process.env.NEXT_PUBLIC_APP_URL}/ton-connect-manifest.json`
   : 'https://hold-ai.vercel.app/ton-connect-manifest.json';
@@ -10,10 +9,35 @@ interface TonConnectProviderProps {
   children: React.ReactNode;
 }
 
+// Ініціалізуємо TonConnect один раз глобально
+const tonConnectUI = new TonConnectUI({
+  manifestUrl: manifestUrl,
+  buttonRootId: 'ton-connect-button',
+  uiPreferences: {
+    theme: 'SYSTEM'
+  }
+});
+
 export function TonConnectProvider({ children }: TonConnectProviderProps) {
-  return (
-    <TonConnectUIProvider manifestUrl={manifestUrl}>
-      {children}
-    </TonConnectUIProvider>
-  );
+  React.useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+
+    (async () => {
+      unsubscribe = tonConnectUI.onStatusChange((wallet) => {
+        if (wallet) {
+          console.log('Wallet connected:', wallet);
+        }
+      });
+    })();
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, []);
+
+  return <>{children}</>;
 }
+
+export { tonConnectUI };

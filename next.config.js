@@ -5,9 +5,6 @@ const nextConfig = {
   images: {
     domains: ['t.me', 'ton.org', 'tonkeeper.com'],
   },
-  experimental: {
-    serverActions: true,
-  },
   async headers() {
     return [
       {
