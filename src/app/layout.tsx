@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import Script from "next/script";
 import "./globals.css";
-import { TonConnectProvider } from "@/providers/TonConnectProvider";
 import type { ReactNode } from 'react';
 
 const geistSans = localFont({
@@ -40,9 +39,6 @@ export default function RootLayout({
           src="/scripts/telegram-web-app.js"
           strategy="afterInteractive"
         />
-        <TonConnectProvider>
-          {children}
-        </TonConnectProvider>
       </body>
     </html>
   );

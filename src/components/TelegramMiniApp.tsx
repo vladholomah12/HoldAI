@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Wallet, Gift, Users } from 'lucide-react';
-import { WalletConnect } from './WalletConnect';
+import WalletConnect from './WalletConnect';
 
 interface UserData {
  id: string;
