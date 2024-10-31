@@ -1,17 +1,13 @@
-'use client';
-
 import React from 'react';
 import { Wallet } from 'lucide-react';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import type { WalletConnectProps } from '@/types/wallet';
 
-const WalletConnect: React.FC<WalletConnectProps> = ({ telegramId, onConnect }) => {
+const WalletConnectComponent: React.FC<WalletConnectProps> = ({ telegramId, onConnect }) => {
   const [tonConnectUI] = useTonConnectUI();
   const [isConnected, setIsConnected] = React.useState(false);
 
   React.useEffect(() => {
-    if (!tonConnectUI) return;
-
     const unsubscribe = tonConnectUI.onStatusChange((wallet) => {
       if (wallet) {
         setIsConnected(true);
@@ -48,4 +44,4 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ telegramId, onConnect }) 
   );
 };
 
-export default WalletConnect;
+export default WalletConnectComponent;

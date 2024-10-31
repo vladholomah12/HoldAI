@@ -3,6 +3,15 @@ import localFont from "next/font/local";
 import Script from "next/script";
 import "./globals.css";
 import type { ReactNode } from 'react';
+import dynamic from 'next/dynamic';
+
+const TonProvider = dynamic(
+  () => import('@/components/providers/TonProvider').then(mod => mod.TonProvider),
+  {
+    ssr: false,
+    loading: () => <div>Loading...</div>
+  }
+);
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -19,7 +28,6 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "HoldAI - TON Mini App",
   description: "Earn and manage your TON tokens",
-  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
@@ -33,12 +41,14 @@ export default function RootLayout({
         <title>HoldAI - TON Mini App</title>
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <noscript>You need to enable JavaScript to run this app.</noscript>
         <Script
           id="telegram-webapp"
-          src="/scripts/telegram-web-app.js"
-          strategy="afterInteractive"
+          src="https://telegram.org/js/telegram-web-app.js"
+          strategy="beforeInteractive"
         />
+        <TonProvider>
+          <main>{children}</main>
+        </TonProvider>
       </body>
     </html>
   );

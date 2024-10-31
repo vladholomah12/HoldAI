@@ -1,0 +1,13 @@
+import dynamic from 'next/dynamic';
+import type { WalletConnectProps } from '@/types/wallet';
+
+const WalletConnectComponent = dynamic(
+  () => import('./WalletConnectComponent'),
+  { ssr: false }
+);
+
+const WalletConnect: React.FC<WalletConnectProps> = (props) => {
+  return <WalletConnectComponent {...props} />;
+};
+
+export default WalletConnect;
