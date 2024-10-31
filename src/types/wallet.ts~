@@ -2,3 +2,10 @@ export interface WalletConnectProps {
   telegramId: number;
   onConnect: (address: string) => Promise<void>;
 }
+
+export interface ConnectedWallet {
+  account: {
+    address: string;
+    chain: number;
+  };
+}
