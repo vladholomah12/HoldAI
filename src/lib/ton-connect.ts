@@ -1,20 +1,33 @@
-import { TonConnect, Wallet, WalletInfo } from '@tonconnect/sdk';
+import { TonConnect, Wallet } from '@tonconnect/sdk';
 
-class TonConnectWrapper {
-  private connector: TonConnect;
+let connector: TonConnect | null = null;
 
-  constructor() {
-    this.connector = new TonConnect({
-      manifestUrl: 'https://hold-ai.vercel.app/tonconnect-manifest.json'
-    });
+// Ініціалізуємо connector тільки на клієнті
+if (typeof window !== 'undefined') {
+  connector = new TonConnect({
+    manifestUrl: 'https://hold-ai.vercel.app/tonconnect-manifest.json'
+  });
+}
+
+export class TonConnectWrapper {
+  private static instance: TonConnectWrapper;
+
+  private constructor() {}
+
+  static getInstance(): TonConnectWrapper {
+    if (!TonConnectWrapper.instance) {
+      TonConnectWrapper.instance = new TonConnectWrapper();
+    }
+    return TonConnectWrapper.instance;
   }
 
   async connect(): Promise<void> {
-    try {
-      const wallets = await this.connector.getWallets();
+    if (!connector) return;
 
+    try {
+      const wallets = await connector.getWallets();
       if (wallets.length > 0) {
-        await this.connector.connect([{
+        await connector.connect([{
           name: 'Tonkeeper',
           bridgeUrl: 'https://bridge.tonapi.io/bridge'
         }]);
@@ -25,40 +38,27 @@ class TonConnectWrapper {
   }
 
   async disconnect(): Promise<void> {
+    if (!connector) return;
+
     try {
-      await this.connector.disconnect();
+      await connector.disconnect();
     } catch (error) {
       console.error('Disconnect error:', error);
     }
   }
 
   onStatusChange(callback: (wallet: Wallet | null) => void) {
-    return this.connector.onStatusChange(callback);
+    if (!connector) return () => {};
+    return connector.onStatusChange(callback);
   }
 
   get status(): boolean {
-    return this.connector.connected;
+    return connector ? connector.connected : false;
   }
 
   get account() {
-    return this.connector.account;
-  }
-
-  async getWallets(): Promise<WalletInfo[]> {
-    return this.connector.getWallets();
-  }
-
-  // Додаємо метод для перевірки чи є з'єднання
-  isConnected(): boolean {
-    return this.connector.connected;
-  }
-
-  // Додаємо метод для отримання адреси гаманця
-  getWalletAddress(): string | null {
-    const account = this.connector.account;
-    return account ? account.address : null;
+    return connector ? connector.account : null;
   }
 }
 
-const connector = new TonConnectWrapper();
-export { connector };
+export const tonConnector = TonConnectWrapper.getInstance();

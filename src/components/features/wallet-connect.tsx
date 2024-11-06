@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from 'react'
-import { connector } from '@/lib/ton-connect'
+import { tonConnector } from '@/lib/ton-connect'
 import { Button } from '../ui/button'
 
 export function WalletConnect() {
@@ -10,7 +10,7 @@ export function WalletConnect() {
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    const unsubscribe = connector.onStatusChange(wallet => {
+    const unsubscribe = tonConnector.onStatusChange(wallet => {
       setIsConnected(!!wallet)
       if (wallet) {
         setAddress(wallet.account.address)
@@ -19,13 +19,6 @@ export function WalletConnect() {
         setAddress(null)
       }
     })
-
-    // Перевіряємо початковий стан
-    setIsConnected(connector.isConnected())
-    const currentAddress = connector.getWalletAddress()
-    if (currentAddress) {
-      setAddress(currentAddress)
-    }
 
     return () => {
       unsubscribe()
@@ -36,9 +29,9 @@ export function WalletConnect() {
     try {
       setIsLoading(true)
       if (isConnected) {
-        await connector.disconnect()
+        await tonConnector.disconnect()
       } else {
-        await connector.connect()
+        await tonConnector.connect()
       }
     } catch (error) {
       console.error('Wallet connection error:', error)
