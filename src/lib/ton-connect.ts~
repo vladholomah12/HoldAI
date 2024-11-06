@@ -1,0 +1,58 @@
+import { TonConnect, Wallet, WalletInfo, CHAIN } from '@tonconnect/sdk';
+
+class TonConnectWrapper {
+  private connector: TonConnect;
+
+  constructor() {
+    this.connector = new TonConnect({
+      manifestUrl: 'https://hold-ai.vercel.app/tonconnect-manifest.json'
+    });
+  }
+
+  async connect(): Promise<void> {
+    try {
+      const wallets = await this.connector.getWallets();
+
+      if (wallets.length > 0) {
+        // Використовуємо TON Mainnet
+        await this.connector.connect([{
+          name: 'Tonkeeper',
+          bridgeUrl: 'https://bridge.tonapi.io/bridge'
+        }], {
+          request: {
+            chain: CHAIN.MAINNET,
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Connection error:', error);
+    }
+  }
+
+  async disconnect(): Promise<void> {
+    try {
+      await this.connector.disconnect();
+    } catch (error) {
+      console.error('Disconnect error:', error);
+    }
+  }
+
+  onStatusChange(callback: (wallet: Wallet | null) => void) {
+    return this.connector.onStatusChange(callback);
+  }
+
+  get status(): boolean {
+    return this.connector.connected;
+  }
+
+  get account() {
+    return this.connector.account;
+  }
+
+  async getWallets(): Promise<WalletInfo[]> {
+    return this.connector.getWallets();
+  }
+}
+
+const connector = new TonConnectWrapper();
+export { connector };
