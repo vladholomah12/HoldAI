@@ -1,12 +1,12 @@
-import { Bot, webhookCallback } from "grammy";
+import { Bot } from "grammy";
 import { NextResponse } from "next/server";
 
-// Створюємо інстанс бота
-const bot = new Bot(process.env.BOT_TOKEN || "");
+const bot = new Bot("8048775133:AAFFC8S8TjyojSzqPPKI7XFt_u9UhiWK8gw");
 
 // Налаштовуємо команду /start
 bot.command("start", async (ctx) => {
   try {
+    console.log("Start command received");
     await ctx.reply("Welcome to Hold AI! 🚀", {
       parse_mode: "HTML",
       reply_markup: {
@@ -15,7 +15,7 @@ bot.command("start", async (ctx) => {
             {
               text: "🎮 Play Now",
               web_app: {
-                url: process.env.NEXT_PUBLIC_WEBAPP_URL || "https://hold-ai.vercel.app"
+                url: "https://hold-ihnsjwytm-vladholomahs-projects.vercel.app"
               }
             }
           ]
@@ -27,20 +27,16 @@ bot.command("start", async (ctx) => {
   }
 });
 
-// Додаємо обробник повідомлень для відлагодження
+// Додаємо обробник для всіх повідомлень (для відлагодження)
 bot.on("message", async (ctx) => {
   console.log("Received message:", ctx.message);
 });
 
-// Запускаємо бота в режимі long polling для development
-if (process.env.NODE_ENV !== "production") {
-  bot.start();
-}
-
-// Обробка POST запитів для webhook
+// POST endpoint для webhook
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    console.log("Received update:", body);
     await bot.handleUpdate(body);
     return NextResponse.json({ ok: true });
   } catch (error) {
@@ -49,7 +45,7 @@ export async function POST(req: Request) {
   }
 }
 
-// Додаємо GET метод для перевірки роботи API
+// GET endpoint для перевірки
 export async function GET() {
   return NextResponse.json({ status: "Bot API is working" });
 }

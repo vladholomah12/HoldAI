@@ -2,11 +2,17 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    const TELEGRAM_BOT_TOKEN = process.env.BOT_TOKEN;
-    const WEBHOOK_URL = `${process.env.NEXT_PUBLIC_WEBAPP_URL}/api/bot`;
+    const TELEGRAM_BOT_TOKEN = "8048775133:AAFFC8S8TjyojSzqPPKI7XFt_u9UhiWK8gw";
+    const WEBHOOK_URL = "https://hold-ihnsjwytm-vladholomahs-projects.vercel.app/api/bot";
 
     const response = await fetch(
-      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook?url=${WEBHOOK_URL}`
+      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook?url=${WEBHOOK_URL}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }
     );
 
     const data = await response.json();
@@ -24,9 +30,10 @@ export async function GET() {
       }, { status: 400 });
     }
   } catch (error) {
+    console.error("Error setting webhook:", error);
     return NextResponse.json({
       status: 'Error setting webhook',
-      error: error
+      error: String(error)
     }, { status: 500 });
   }
 }
