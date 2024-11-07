@@ -1,31 +1,13 @@
 import { Bot } from "grammy";
 import { NextResponse } from "next/server";
 
-const BOT_TOKEN = "8048775133:AAFFC8S8TjyojSzqPPKI7XFt_u9UhiWK8gw";
-const bot = new Bot(BOT_TOKEN);
+// Вказуємо що це Edge Runtime
+export const runtime = 'edge';
 
-// POST endpoint для webhook
-export async function POST(request: Request) {
-  console.log("Received webhook request");
+const bot = new Bot("8048775133:AAFFC8S8TjyojSzqPPKI7XFt_u9UhiWK8gw");
 
-  try {
-    const body = await request.json();
-    console.log("Webhook body:", body);
-
-    await bot.handleUpdate(body);
-    return NextResponse.json({ ok: true });
-  } catch (error) {
-    console.error("Error in webhook:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error", details: String(error) },
-      { status: 500 }
-    );
-  }
-}
-
-// Налаштовуємо команди бота
+// Команда /start
 bot.command("start", async (ctx) => {
-  console.log("Start command received");
   try {
     await ctx.reply("Welcome to Hold AI! 🚀", {
       reply_markup: {
@@ -43,19 +25,34 @@ bot.command("start", async (ctx) => {
     });
   } catch (error) {
     console.error("Error in start command:", error);
-    // Спробуємо надіслати простіше повідомлення
-    try {
-      await ctx.reply("Bot is working!");
-    } catch (retryError) {
-      console.error("Error sending fallback message:", retryError);
-    }
   }
 });
 
-// GET endpoint для перевірки
+// POST для вебхука
+export async function POST(req: Request) {
+  if (req.headers.get("content-type") !== "application/json") {
+    return new Response("Only JSON requests allowed", { status: 415 });
+  }
+
+  try {
+    const body = await req.json();
+    await bot.handleUpdate(body);
+
+    return new Response("OK", { status: 200 });
+  } catch (error) {
+    console.error("Error in webhook handler:", error);
+    return new Response("Error", { status: 500 });
+  }
+}
+
+// GET для перевірки
 export async function GET() {
-  return NextResponse.json({
-    status: "Bot API is working",
+  return new Response(JSON.stringify({
+    status: "OK",
     timestamp: new Date().toISOString()
+  }), {
+    headers: {
+      'content-type': 'application/json',
+    },
   });
 }
