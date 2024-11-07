@@ -1,30 +1,13 @@
-import { Bot, Context } from "grammy";
+import { Bot } from "grammy";
 import { NextResponse } from "next/server";
 
 const bot = new Bot("8048775133:AAFFC8S8TjyojSzqPPKI7XFt_u9UhiWK8gw");
 
-// Обробка помилок
-bot.catch((err) => {
-  console.error("Error in bot:", err);
-});
-
-// Debug middleware
-bot.use(async (ctx, next) => {
-  console.log("Received update:", {
-    updateType: ctx.update.message?.text ? 'message' : 'other',
-    from: ctx.from,
-    message: ctx.message,
-  });
-  await next();
-});
-
-// Команда /start
+// Налаштовуємо команду /start
 bot.command("start", async (ctx) => {
-  console.log("Start command received from:", ctx.from);
-
+  console.log("Start command received");
   try {
-    const message = await ctx.reply("Welcome to Hold AI! 🚀", {
-      parse_mode: "HTML",
+    await ctx.reply("Welcome to Hold AI! 🚀", {
       reply_markup: {
         inline_keyboard: [
           [
@@ -38,59 +21,36 @@ bot.command("start", async (ctx) => {
         ]
       }
     });
-
-    console.log("Reply sent successfully:", message);
   } catch (error) {
-    console.error("Error sending start message:", error);
-    // Спробуємо надіслати простіше повідомлення
-    try {
-      await ctx.reply("Welcome! Something went wrong, please try again.");
-    } catch (retryError) {
-      console.error("Error sending fallback message:", retryError);
-    }
+    console.error("Error in start command:", error);
   }
 });
 
-// Тестова команда для перевірки
-bot.command("test", async (ctx) => {
-  try {
-    await ctx.reply("Bot is working!");
-  } catch (error) {
-    console.error("Error in test command:", error);
-  }
+// Обробка всіх повідомлень для дебагу
+bot.on("message", async (ctx) => {
+  console.log("Received message:", ctx.message);
 });
 
-// POST обробник для webhook
+// POST endpoint для webhook
 export async function POST(request: Request) {
-  console.log("Received webhook POST request");
-
   try {
     const body = await request.json();
-    console.log("Webhook body:", body);
-
+    console.log("Received update:", body);
     await bot.handleUpdate(body);
-
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error("Error processing webhook:", error);
+    console.error("Error handling update:", error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: String(error) },
+      { error: "Internal Server Error" },
       { status: 500 }
     );
   }
 }
 
-// GET обробник для перевірки
+// GET endpoint для перевірки
 export async function GET() {
-  console.log("Received GET request to bot endpoint");
   return NextResponse.json({
     status: "Bot API is working",
-    webhook: "https://hold-ihnsjwytm-vladholomahs-projects.vercel.app/api/bot",
-    botInfo: bot.botInfo
+    timestamp: new Date().toISOString()
   });
-}
-
-// Запускаємо бота тільки в режимі розробки
-if (process.env.NODE_ENV === 'development') {
-  bot.start();
 }
