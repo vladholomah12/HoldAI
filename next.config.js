@@ -1,14 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  images: {
-    domains: ['t.me'], // Для зображень з Telegram
+  async headers() {
+    return [
+      {
+        source: '/api/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET,POST,OPTIONS' },
+          { key: 'Access-Control-Allow-Headers', value: 'Content-Type' },
+        ],
+      },
+    ]
   },
-  typescript: {
-    ignoreBuildErrors: true, // Тимчасово, поки виправляємо всі типи
-  },
-  eslint: {
-    ignoreDuringBuilds: true, // Тимчасово, поки виправляємо всі помилки eslint
-  }
 }
 
 module.exports = nextConfig
