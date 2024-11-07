@@ -1,4 +1,4 @@
-import { Bot } from "grammy";
+import { Bot, Context } from "grammy";
 import { NextResponse } from "next/server";
 
 const bot = new Bot("8048775133:AAFFC8S8TjyojSzqPPKI7XFt_u9UhiWK8gw");
@@ -11,7 +11,7 @@ bot.catch((err) => {
 // Debug middleware
 bot.use(async (ctx, next) => {
   console.log("Received update:", {
-    type: ctx.updateType,
+    updateType: ctx.update.message?.text ? 'message' : 'other',
     from: ctx.from,
     message: ctx.message,
   });
@@ -86,6 +86,11 @@ export async function GET() {
   return NextResponse.json({
     status: "Bot API is working",
     webhook: "https://hold-ihnsjwytm-vladholomahs-projects.vercel.app/api/bot",
-    bot: bot.botInfo?.username
+    botInfo: bot.botInfo
   });
+}
+
+// Запускаємо бота тільки в режимі розробки
+if (process.env.NODE_ENV === 'development') {
+  bot.start();
 }
