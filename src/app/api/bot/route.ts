@@ -1,58 +1,64 @@
-import { Bot } from "grammy";
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 
-// Вказуємо що це Edge Runtime
-export const runtime = 'edge';
+const BOT_TOKEN = "8048775133:AAFFC8S8TjyojSzqPPKI7XFt_u9UhiWK8gw";
 
-const bot = new Bot("8048775133:AAFFC8S8TjyojSzqPPKI7XFt_u9UhiWK8gw");
+async function sendTelegramMessage(chatId: number | string, text: string, extra = {}) {
+  const response = await fetch(
+    `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        parse_mode: 'HTML',
+        ...extra
+      }),
+    }
+  );
 
-// Команда /start
-bot.command("start", async (ctx) => {
-  try {
-    await ctx.reply("Welcome to Hold AI! 🚀", {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            {
-              text: "🎮 Play Now",
-              web_app: {
-                url: "https://hold-ihnsjwytm-vladholomahs-projects.vercel.app"
-              }
-            }
-          ]
-        ]
-      }
-    });
-  } catch (error) {
-    console.error("Error in start command:", error);
-  }
-});
+  return response.json();
+}
 
-// POST для вебхука
 export async function POST(req: Request) {
-  if (req.headers.get("content-type") !== "application/json") {
-    return new Response("Only JSON requests allowed", { status: 415 });
-  }
-
   try {
-    const body = await req.json();
-    await bot.handleUpdate(body);
+    const update = await req.json();
+    console.log('Telegram Update:', update);
 
-    return new Response("OK", { status: 200 });
+    // Обробка команди /start
+    if (update.message?.text === '/start') {
+      await sendTelegramMessage(
+        update.message.chat.id,
+        'Welcome to Hold AI! 🚀',
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: '🎮 Play Now',
+                  web_app: {
+                    url: 'https://hold-ihnsjwytm-vladholomahs-projects.vercel.app'
+                  }
+                }
+              ]
+            ]
+          }
+        }
+      );
+    }
+
+    return NextResponse.json({ status: 'ok' });
   } catch (error) {
-    console.error("Error in webhook handler:", error);
-    return new Response("Error", { status: 500 });
+    console.error('Webhook error:', error);
+    return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }
 
-// GET для перевірки
 export async function GET() {
-  return new Response(JSON.stringify({
-    status: "OK",
+  return NextResponse.json({
+    status: 'Bot API is working',
     timestamp: new Date().toISOString()
-  }), {
-    headers: {
-      'content-type': 'application/json',
-    },
   });
 }
